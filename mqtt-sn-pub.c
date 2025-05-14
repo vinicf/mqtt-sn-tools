@@ -52,6 +52,11 @@ uint8_t retain = FALSE;
 uint8_t one_message_per_line = FALSE;
 uint8_t debug = 0;
 
+// Adding DTLS variables
+const char *ca_file = NULL; // Variables to store paths from getopt
+const char *cert_file = NULL;
+const char *key_file = NULL;
+int use_dtls = FALSE; // Flag if --dtls option is used
 
 static void usage()
 {
@@ -74,6 +79,10 @@ static void usage()
     fprintf(stderr, "  -T <topicid>   Pre-defined MQTT-SN topic ID to publish to.\n");
     fprintf(stderr, "  --fe           Enables Forwarder Encapsulation. Mqtt-sn packets are encapsulated according to MQTT-SN Protocol Specification v1.2, chapter 5.5 Forwarder Encapsulation.\n");
     fprintf(stderr, "  --wlnid        If Forwarder Encapsulation is enabled, wireless node ID for this client. Defaults to process id.\n");
+    fprintf(stderr, "  --cafile       Path to the CA certificate file for server verification.\n");
+    fprintf(stderr, "  --cert         Path to the client's certificate file.\n");
+    fprintf(stderr, "  --key          Path to the client's private key file.\n");
+    fprintf(stderr, "  --dtls         An option to explicitly enable DTLS, uses default port 8883.\n");
     fprintf(stderr, "  --cport <port> Source port for outgoing packets. Uses port in ephemeral range if not specified or set to %d.\n", source_port);
     exit(EXIT_FAILURE);
 }
@@ -85,6 +94,10 @@ static void parse_opts(int argc, char** argv)
         {"fe",    no_argument,       0, 1000 },
         {"wlnid", required_argument, 0, 1001 },
         {"cport", required_argument, 0, 1002 },
+        {"cafile", required_argument, 0, 1003 },
+        {"cert", required_argument, 0, 1004 },
+        {"key", required_argument, 0, 1005 },
+        {"dtls", no_argument, 0, 1006 },
         {0, 0, 0, 0}
     };
 
@@ -93,7 +106,7 @@ static void parse_opts(int argc, char** argv)
     int option_index = 0;
 
     // Parse the options/switches
-    while ((ch = getopt_long (argc, argv, "df:h:i:k:e:lm:np:q:rst:T:?", long_options, &option_index)) != -1) {
+    while ((ch = getopt_long (argc, argv, "df:h:i:k:e:lm:np:q:rst:T:cafile:cert:key:dtls:?", long_options, &option_index)) != -1) {
         switch (ch) {
             case 'd':
                 debug++;
@@ -169,6 +182,25 @@ static void parse_opts(int argc, char** argv)
                 source_port = atoi(optarg);
                 break;
 
+            case 1003: // Assign unique value > 1000
+                ca_file = optarg;
+                use_dtls = TRUE; // Implicitly enable DTLS if certs are provided
+                break;
+
+            case 1004:
+                cert_file = optarg;
+                use_dtls = TRUE;
+                break;
+
+            case 1005:
+                key_file = optarg;
+                use_dtls = TRUE;
+                break;
+
+            case 1006:
+                 use_dtls = TRUE;
+                 break;
+
             case '?':
             default:
                 usage();
@@ -202,6 +234,19 @@ static void parse_opts(int argc, char** argv)
     if (qos == -1 && topic_id == 0 && strlen(topic_name) != 2) {
         mqtt_sn_log_err("Either a pre-defined topic id or a short topic name must be given for QoS -1.");
         exit(EXIT_FAILURE);
+    }
+
+    if (use_dtls) {
+        mqtt_sn_log_debug("DTLS requested. Initializing...");
+        if (mqtt_sn_dtls_init(ca_file, cert_file, key_file) != 0) {
+            mqtt_sn_log_err("DTLS initialization failed. Exiting.");
+            exit(EXIT_FAILURE);
+        }
+         // Optionally change default port if DTLS is used and no port was specified
+        if (strcmp(mqtt_sn_port, MQTT_SN_DEFAULT_PORT) == 0) {
+            mqtt_sn_port = MQTT_SN_DEFAULT_SECURE_PORT;
+            mqtt_sn_log_debug("Using default secure port: %s", mqtt_sn_port);
+        }
     }
 }
 
@@ -271,6 +316,11 @@ int main(int argc, char* argv[])
     // Create a UDP socket
     sock = mqtt_sn_create_socket(mqtt_sn_host, mqtt_sn_port, source_port);
     if (sock) {
+        if (sock < 0) { // Changed check as function returns FD or exits
+            mqtt_sn_log_err("Failed to create socket. Exiting.");
+             if (use_dtls) mqtt_sn_dtls_cleanup(); // Cleanup DTLS if init was called
+            exit(EXIT_FAILURE);
+        }
         // Connect to gateway
         if (qos >= 0) {
             mqtt_sn_log_debug("Connecting...");

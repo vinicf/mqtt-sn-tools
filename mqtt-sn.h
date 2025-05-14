@@ -22,6 +22,13 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 #include <stdarg.h>
+#include <stdint.h> // Added for uint*_t types if not implicitly included
+
+// ---- DTLS Includes ----
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+// ---- End DTLS Includes ----
+
 
 #ifndef MQTT_SN_H
 #define MQTT_SN_H
@@ -34,7 +41,10 @@
 #define TRUE  (1)
 #endif
 
-#define MQTT_SN_DEFAULT_PORT       "1883"
+#define MQTT_SN_DEFAULT_PORT       "1884"
+// --- Define secure port if needed, e.g., "8884" ---
+#define MQTT_SN_DEFAULT_SECURE_PORT "8884"
+// --- ---
 #define MQTT_SN_DEFAULT_TIMEOUT    (10)
 #define MQTT_SN_DEFAULT_KEEP_ALIVE (10)
 
@@ -95,6 +105,7 @@
 
 #define MQTT_SN_PROTOCOL_ID  (0x01)
 
+// --- Struct definitions remain the same ---
 typedef struct {
     uint8_t length;
     uint8_t type;
@@ -190,7 +201,26 @@ typedef struct topic_map {
 
 
 // Library functions
+
+// --- DTLS Related Functions ---
+// Initialize DTLS context (call once at the start)
+// Provide paths to certificates/keys. Pass NULL if not using specific auth method.
+// Returns 0 on success, -1 on error.
+int mqtt_sn_dtls_init(const char* ca_file, const char* cert_file, const char* key_file);
+
+// Cleanup DTLS resources (call once at the end)
+void mqtt_sn_dtls_cleanup();
+// --- End DTLS Related Functions ---
+
+
+// Modified to potentially handle DTLS setup internally after UDP socket creation
 int mqtt_sn_create_socket(const char* host, const char* port, uint16_t source_port);
+
+// Packet sending/receiving now uses DTLS layer if initialized
+void mqtt_sn_send_packet(int sock, const void* data); // sock might become less relevant if managed internally
+void* mqtt_sn_receive_packet(int sock); // sock might become less relevant
+
+// Other function signatures remain the same
 void mqtt_sn_send_connect(int sock, const char* client_id, uint16_t keepalive, uint8_t clean_session);
 void mqtt_sn_send_register(int sock, const char* topic_name);
 void mqtt_sn_send_publish(int sock, uint16_t topic_id, uint8_t topic_type, const void* data, uint16_t data_len, int8_t qos, uint8_t retain);
@@ -218,22 +248,20 @@ const char* mqtt_sn_type_string(uint8_t type);
 const char* mqtt_sn_return_code_string(uint8_t return_code);
 
 uint8_t mqtt_sn_validate_packet(const void *packet, size_t length);
-void mqtt_sn_send_packet(int sock, const void* data);
-void mqtt_sn_send_frwdencap_packet(int sock, const void* data, const uint8_t *wireless_node_id, uint8_t wireless_node_id_len);
-void* mqtt_sn_receive_packet(int sock);
-void* mqtt_sn_receive_frwdencap_packet(int sock, uint8_t **wireless_node_id, uint8_t *wireless_node_id_len);
+// void mqtt_sn_send_packet(int sock, const void* data); // Now handles DTLS internally
+// void* mqtt_sn_receive_packet(int sock); // Now handles DTLS internally
 
-// Functions to turn on and off forwarder encapsulation according to MQTT-SN Protocol Specification v1.2,
-// chapter 5.5 Forwarder Encapsulation.
+// Forwarder encapsulation functions remain the same, but operate on encrypted/decrypted data if DTLS is active
+void mqtt_sn_send_frwdencap_packet(int sock, const void* data, const uint8_t *wireless_node_id, uint8_t wireless_node_id_len);
+void* mqtt_sn_receive_frwdencap_packet(int sock, uint8_t **wireless_node_id, uint8_t *wireless_node_id_len); // Core recv logic modified for DTLS
+
 uint8_t mqtt_sn_enable_frwdencap();
 uint8_t mqtt_sn_disable_frwdencap();
-
-// Set wireless node ID and wireless node ID length
 void mqtt_sn_set_frwdencap_parameters(const uint8_t *wlnid, uint8_t wlnid_len);
-
-// Wrap mqtt-sn packet into a forwarder encapsulation packet
 frwdencap_packet_t* mqtt_sn_create_frwdencap_packet(const void *data, size_t *len, const uint8_t *wireless_node_id, uint8_t wireless_node_id_len);
 
+
+// Logging functions remain the same
 void mqtt_sn_log_debug(const char * format, ...);
 void mqtt_sn_log_warn(const char * format, ...);
 void mqtt_sn_log_err(const char * format, ...);

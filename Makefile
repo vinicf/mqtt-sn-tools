@@ -1,8 +1,19 @@
+# Compiler (use gcc explicitly if cc is not gcc or if you prefer)
+# CC=gcc
 CC=cc
+
 PACKAGE=mqtt-sn-tools
 VERSION=0.0.7
+
+# Compiler Flags
 CFLAGS=-g -Wall -DVERSION=$(VERSION)
+
+# Linker Flags (e.g., -L/path/to/libs)
 LDFLAGS=
+
+# ---> ADDED LINE: Define Libraries to Link <---
+LDLIBS = -lssl -lcrypto
+
 INSTALL?=install
 prefix=/usr/local
 
@@ -13,11 +24,12 @@ TARGETS=mqtt-sn-dump mqtt-sn-pub mqtt-sn-sub mqtt-sn-serial-bridge
 
 all: $(TARGETS)
 
+# ---> MODIFIED LINE: Added $(LDLIBS) to the linking command <---
 $(TARGETS): %: mqtt-sn.o %.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 %.o : %.c mqtt-sn.h
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $< -o $@
 
 install: $(TARGETS)
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
@@ -52,11 +64,11 @@ coverage: LDFLAGS += --coverage
 coverage: clean test
 	mkdir -p coverage
 	lcov \
-    --capture \
-    --directory . \
-    --no-external \
-    --output coverage/lcov.info
+	--capture \
+	--directory . \
+	--no-external \
+	--output coverage/lcov.info
 	genhtml \
-    --title 'MQTT-SN Tools' \
-    --output-directory coverage \
-    coverage/lcov.info
+	--title 'MQTT-SN Tools' \
+	--output-directory coverage \
+	coverage/lcov.info
