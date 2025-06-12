@@ -1,0 +1,96 @@
+gateway {
+  mqttsn {
+    broadcast = true
+    enable = true
+    enable_qos3 = true
+    enable_stats = true
+    gateway_id = 1
+    idle_timeout = "30s"
+    listeners {
+      dtls {
+        seguranca {
+          acceptors = 16
+          access_rules = []
+          bind = "0.0.0.0:1885"
+          dtls_options {
+            cacertfile = "${EMQX_ETC_DIR}/certs/cacert.pem"
+            certfile = "${EMQX_ETC_DIR}/certs/cert.pem"
+            ciphers = []
+            client_renegotiation = true
+            depth = 10
+            enable_crl_check = false
+            fail_if_no_peer_cert = false
+            gc_after_handshake = false
+            handshake_timeout = "15s"
+            hibernate_after = "5s"
+            honor_cipher_order = true
+            keyfile = "${EMQX_ETC_DIR}/certs/key.pem"
+            log_level = notice
+            ocsp {
+              enable_ocsp_stapling = false
+              refresh_http_timeout = "15s"
+              refresh_interval = "5m"
+            }
+            password = ""
+            reuse_sessions = true
+            secure_renegotiate = true
+            verify = verify_none
+            versions = [
+              "dtlsv1.2"
+            ]
+          }
+          enable = true
+          enable_authn = true
+          max_conn_rate = 1000
+          max_connections = 102400
+          mountpoint = ""
+          udp_options {active_n = 100, reuseaddr = true}
+        }
+      }
+      udp {
+        default {
+          access_rules = []
+          bind = "1884"
+          enable = true
+          enable_authn = true
+          max_conn_rate = 1000
+          max_connections = 1024000
+          udp_options {active_n = 100, reuseaddr = true}
+        }
+      }
+    }
+    mountpoint = ""
+    predefined = []
+    subs_resume = false
+  }
+}
+log {
+  console {
+    enable = true
+    formatter = text
+    level = debug
+    time_offset = system
+    timestamp_format = auto
+  }
+  file {
+    default {
+      enable = true
+      formatter = text
+      level = debug
+      path = "/opt/emqx/log/emqx.log"
+      rotation_count = 10
+      rotation_size = "50MB"
+      time_offset = system
+      timestamp_format = auto
+    }
+  }
+  throttling {
+    time_window = "1m"
+  }
+}
+rewrite = []
+topic_metrics = [
+  {
+    topic = "11"
+  }
+]

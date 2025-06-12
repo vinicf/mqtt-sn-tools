@@ -1,127 +1,163 @@
-MQTT-SN Tools
-=============
+# Ferramentas MQTT-SN
 
-[![Build Status](https://travis-ci.org/njh/mqtt-sn-tools.svg?branch=master)](https://travis-ci.org/njh/mqtt-sn-tools)
+Baseado no projeto original: [MQTT-SN](https://github.com/njh/mqtt-sn-tools)
 
-Command line tools written in C for the MQTT-SN (MQTT for Sensor Networks) protocol.
+Estamos a utilizar este projeto para testar o protocolo MQTT-SN em ambientes com perdas e latência. O cenário de testes envolve dois contentores Docker: um atua como servidor MQTT e o outro como cliente MQTT-SN.
 
+Para simular perdas de pacotes entre os contentores, estamos a usar a ferramenta `tc` em Linux.
 
-Supported Features
-------------------
-
-- QoS 0, 1 and -1
-- Keep alive pings
-- Publishing retained messages
-- Publishing empty messages
-- Subscribing to named topic
-- Clean / unclean sessions
-- Manual and automatic client ID generation
-- Displaying topic name with wildcard subscriptions
-- Pre-defined topic IDs and short topic names
-- Forwarder encapsulation according to MQTT-SN Protocol Specification v1.2.
+## Imagem
 
 
-Limitations
------------
+## Scripts
 
-- Packets must be 255 or less bytes long
-- No Last Will and Testament
-- No QoS 2
-- No automatic re-sending of lost packets
-- No Automatic gateway discovery
+### `run_all.sh`
 
+Este script executa testes para todos os níveis de QoS (0, 1 e -1) sob diferentes taxas de perda: 0%, 0.1%, 1%, 5%, 10% e 25%.
 
-Building
---------
+Comandos de execução:
 
-Just run 'make' on a POSIX system.
+```bash
+./docker-compose up -d
+./run_all.sh
+```
 
+---
 
-Publishing
-----------
+## Funcionalidades Suportadas
 
-    Usage: mqtt-sn-pub [opts] -t <topic> -m <message>
+* QoS 0, 1 e -1
+* Pings de keep-alive
+* Publicação de mensagens retidas
+* Publicação de mensagens vazias
+* Subscrição por tópico nomeado
+* Sessões limpas e persistentes
+* Geração manual e automática de client ID
+* Visualização do nome do tópico em subscrições com wildcards
+* Suporte a IDs de tópicos pré-definidos e nomes de tópicos curtos
+* Encapsulamento de forwarder conforme a especificação MQTT-SN v1.2
 
-      -d             Increase debug level by one. -d can occur multiple times.
-      -f <file>      A file to send as the message payload.
-      -h <host>      MQTT-SN host to connect to. Defaults to '127.0.0.1'.
-      -i <clientid>  ID to use for this client. Defaults to 'mqtt-sn-tools-' with process id.
-      -k <keepalive> keep alive in seconds for this client. Defaults to 10.
-      -e <sleep>     sleep duration in seconds when disconnecting. Defaults to 0.
-      -m <message>   Message payload to send.
-      -l             Read from STDIN, one message per line.
-      -n             Send a null (zero length) message.
-      -p <port>      Network port to connect to. Defaults to 1883.
-      -q <qos>       Quality of Service value (0, 1 or -1). Defaults to 0.
-      -r             Message should be retained.
-      -s             Read one whole message from STDIN.
-      -t <topic>     MQTT-SN topic name to publish to.
-      -T <topicid>   Pre-defined MQTT-SN topic ID to publish to.
-      --fe           Enables Forwarder Encapsulation. Mqtt-sn packets are encapsulated according to MQTT-SN Protocol Specification v1.2, chapter 5.5 Forwarder Encapsulation.
-      --wlnid        If Forwarder Encapsulation is enabled, wireless node ID for this client. Defaults to process id.
-      --cport <port> Source port for outgoing packets. Uses port in ephemeral range if not specified or set to 0.
+---
 
+## Limitações
 
-Subscribing
------------
+* Tamanho máximo dos pacotes: 255 bytes
+* Não suporta Last Will and Testament
+* Sem suporte para QoS 2
+* Não reenvia automaticamente pacotes perdidos
+* Não suporta descoberta automática de gateways
 
-    Usage: mqtt-sn-sub [opts] -t <topic>
+---
 
-      -1             exit after receiving a single message.
-      -c             disable 'clean session' (store subscription and pending messages when client disconnects).
-      -d             Increase debug level by one. -d can occur multiple times.
-      -h <host>      MQTT-SN host to connect to. Defaults to '127.0.0.1'.
-      -i <clientid>  ID to use for this client. Defaults to 'mqtt-sn-tools-' with process id.
-      -k <keepalive> keep alive in seconds for this client. Defaults to 10.
-      -e <sleep>     sleep duration in seconds when disconnecting. Defaults to 0.
-      -p <port>      Network port to connect to. Defaults to 1883.
-      -q <qos>       QoS level to subscribe with (0 or 1). Defaults to 0.
-      -t <topic>     MQTT-SN topic name to subscribe to. It may repeat multiple times.
-      -T <topicid>   Pre-defined MQTT-SN topic ID to subscribe to. It may repeat multiple times.
-      --fe           Enables Forwarder Encapsulation. Mqtt-sn packets are encapsulated according to MQTT-SN Protocol Specification v1.2, chapter 5.5 Forwarder Encapsulation.
-      --wlnid        If Forwarder Encapsulation is enabled, wireless node ID for this client. Defaults to process id.
-      -v             Print messages verbosely, showing the topic name.
-      -V             Print messages verbosely, showing current time and the topic name.
-      --cport <port> Source port for outgoing packets. Uses port in ephemeral range if not specified or set to 0.
+## Compilação
 
+Executar `make` num sistema compatível com POSIX.
 
-Dumping
--------
+---
 
-Displays MQTT-SN packets sent to specified port.
-Most useful for listening out for QoS -1 messages being published by a client.
+## Publicação
 
-    Usage: mqtt-sn-dump [opts] -p <port>
+**Uso:**
 
-      -a             Dump all packet types.
-      -d             Increase debug level by one. -d can occur multiple times.
-      -p <port>      Network port to listen on. Defaults to 1883.
-      -v             Print messages verbosely, showing the topic name.
+```bash
+mqtt-sn-pub [opções] -t <tópico> -m <mensagem>
+```
 
+**Opções principais:**
 
-Serial Port Bridge
-------------------
+* `-d` Aumenta o nível de debug (pode ser usado várias vezes)
+* `-f <ficheiro>` Envia conteúdo do ficheiro como payload
+* `-h <host>` Servidor MQTT-SN (por omissão: `127.0.0.1`)
+* `-i <clientid>` ID do cliente (por omissão: `mqtt-sn-tools-<pid>`)
+* `-k <segundos>` Keep-alive (por omissão: 10)
+* `-p <porto>` Porto de rede (por omissão: 1883)
+* `-q <qos>` QoS (0, 1 ou -1; por omissão: 0)
+* `-r` Mensagem deve ser retida
+* `-s` Lê mensagem completa do STDIN
+* `-t <tópico>` Nome do tópico MQTT-SN para publicação
+* `-T <idTópico>` ID pré-definido de tópico
+* `--fe` Ativa o encapsulamento por forwarder (MQTT-SN v1.2)
+* `--wlnid` ID do nó wireless (por omissão: PID do processo)
+* `--cport <porto>` Porto de origem dos pacotes (automático se 0 ou não especificado)
 
-The Serial Port bridge can be used to relay packets from a remote device on the end of a
-serial port and convert them into UDP packets, which are sent and received from a broker
-or MQTT-SN gateway.
+---
 
-    Usage: mqtt-sn-serial-bridge [opts] <device>
+## Subscrição
 
-      -b <baud>      Set the baud rate. Defaults to 9600.
-      -d             Increase debug level by one. -d can occur multiple times.
-      -dd            Enable extended debugging - display packets in hex.
-      -h <host>      MQTT-SN host to connect to. Defaults to '127.0.0.1'.
-      -p <port>      Network port to connect to. Defaults to 1883.
-      --fe           Enables Forwarder Encapsulation. Mqtt-sn packets are encapsulated according to MQTT-SN Protocol Specification v1.2, chapter 5.5 Forwarder Encapsulation.
-      --cport <port> Source port for outgoing packets. Uses port in ephemeral range if not specified or set to 0.
+**Uso:**
 
+```bash
+mqtt-sn-sub [opções] -t <tópico>
+```
 
-License
--------
+**Opções principais:**
 
-MQTT-SN Tools is licensed under the [MIT License].
+* `-1` Sai após receber uma única mensagem
+* `-c` Desativa sessão limpa (mantém subscrições e mensagens pendentes após desconexão)
+* `-d` Aumenta o nível de debug
+* `-h <host>` Servidor MQTT-SN (por omissão: `127.0.0.1`)
+* `-i <clientid>` ID do cliente (por omissão: `mqtt-sn-tools-<pid>`)
+* `-k <segundos>` Keep-alive (por omissão: 10)
+* `-e <segundos>` Tempo de espera ao desligar (por omissão: 0)
+* `-p <porto>` Porto de rede (por omissão: 1883)
+* `-q <qos>` QoS para subscrição (0 ou 1; por omissão: 0)
+* `-t <tópico>` Nome do tópico a subscrever (pode repetir-se)
+* `-T <idTópico>` ID pré-definido de tópico (pode repetir-se)
+* `--fe` Ativa o encapsulamento por forwarder
+* `--wlnid` ID do nó wireless (por omissão: PID do processo)
+* `-v` Mostra mensagens com nome do tópico
+* `-V` Mostra mensagens com hora e nome do tópico
+* `--cport <porto>` Porto de origem dos pacotes
 
+---
 
+## Captura de Pacotes (Dumping)
 
-[MIT License]: http://opensource.org/licenses/MIT
+Mostra os pacotes MQTT-SN recebidos num porto especificado. Útil para monitorizar mensagens QoS -1.
+
+**Uso:**
+
+```bash
+mqtt-sn-dump [opções] -p <porto>
+```
+
+**Opções:**
+
+* `-a` Mostra todos os tipos de pacotes
+* `-d` Aumenta o nível de debug
+* `-p <porto>` Porto de escuta (por omissão: 1883)
+* `-v` Mostra mensagens com nome do tópico
+
+---
+
+## Ponte para Porta Série (Serial Bridge)
+
+Permite retransmitir pacotes a partir de um dispositivo remoto via porta série, convertendo-os em pacotes UDP enviados para o broker ou gateway MQTT-SN.
+
+**Uso:**
+
+```bash
+mqtt-sn-serial-bridge [opções] <dispositivo>
+```
+
+**Opções:**
+
+* `-b <baud>` Taxa de baud (por omissão: 9600)
+* `-d` Aumenta o nível de debug
+* `-dd` Debug estendido (mostra pacotes em hexadecimal)
+* `-h <host>` Servidor MQTT-SN (por omissão: `127.0.0.1`)
+* `-p <porto>` Porto de rede (por omissão: 1883)
+* `--fe` Ativa encapsulamento por forwarder
+* `--cport <porto>` Porto de origem dos pacotes
+
+---
+
+## Licença
+
+MQTT-SN Tools está licenciado sob a [Licença MIT].
+
+[Licença MIT]: http://opensource.org/licenses/MIT
+
+---
+
+Se precisares de integrar esta documentação com imagens, diagramas ou exemplos específicos de comandos de teste com `tc`, também posso ajudar!

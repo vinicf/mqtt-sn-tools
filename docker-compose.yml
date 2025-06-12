@@ -1,0 +1,31 @@
+    version: '3'
+
+    services:
+      emqx:
+        image: emqx/emqx:5.7.2
+        user: root
+        cap_add:
+          - NET_ADMIN
+          - SYS_TIME
+        environment:
+          - "EMQX_LISTENER__SSL__EXTERNAL__CERTFILE=/tmp/myCAX509Certificate.crt"
+          - "EMQX_LISTENER__SSL__EXTERNAL__KEYFILE=/tmp/myCA.key"
+          - "EMQX_LISTENER__SSL__EXTERNAL__CACERTFILE=/tmp/myCA.pem"
+        ports:
+          - "8883:8883"
+          - "1883:1883"
+          - "8083:8083"
+          - "8084:8084"
+          - "18083:18083"
+          - "1884:1884/udp"
+          - "1885:1885/udp"
+        networks:
+          emqx-bridge:
+            aliases:
+            - broker.emqx.io
+        volumes:
+        - ./emqx_confs:/opt/emqx/data/configs
+        - ./ca-files:/tmp/
+    networks:
+      emqx-bridge:
+        driver: bridge

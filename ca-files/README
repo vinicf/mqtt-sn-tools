@@ -1,0 +1,22 @@
+# How To use this ca:
+# 0 - organize this dir in a tree
+# 1 - generate a private key (ex.: rsa)
+openssl genrsa -out myCA.key 2048
+
+# 2 - generate a root certificate based on this private key
+openssl req -x509 -new -nodes -key myCA.key -sha256 -days 1825 -out myCA.pem
+
+
+# 3 - generate a certificate request based on this private key 
+openssl req -new -key myCA.key -out myCA.csr
+
+# 4 - generate a X.509 certificate using the csr and the CA private key and root certificate:
+openssl x509 -req -in myCA.csr -CA myCA.pem -CAkey myCA.key -CAcreateserial -out myCAX509Certificate.crt -days 365 -sha256
+
+# 5 - Add the CA pem to Linux /usr/share/local/ca-certificates/ using a crt extension and update the ca-certificates to make it valid for the system
+sudo cp ./myCA.pem /usr/local/share/ca-certificates/myCA.crt
+
+sudo update-ca-certificates
+
+# 5 - to generate new certificates based on this CA, use the issue_cert.sh script
+sudo bash issue_cert.sh
