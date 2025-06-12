@@ -15,6 +15,7 @@ helpFunction()
    echo -e "\t-q QoS level (0, 1, or 2)"
    echo -e "\t-k KeepAlive value (in seconds)"
    echo -e "Example: $0 -r 10 -l 1% -p 25% -d 20ms -j 5ms -n 10 -s 100 -i 1 -q 1 -k 60"
+   echo -e "Example: $0 -r 10 -l 0% -p 25% -d 20ms -j 5ms -n 10 -s 100 -i 1 -q 0 -k 60"
    exit 1
 }
 
@@ -62,21 +63,25 @@ mkdir -p ./results/sn-dtls
 x=1
 while [ "$x" -le "$runs" ]; do
    echo "Running test $x of $runs..."
-   sudo tcpdump -U -i "$veth" port 8883 -w "./results/sn-dtls/run-$x-loss-$loss-delay-$delay-n-$number_of_packets-s-$size_of_packets-i-$msg_interval.pcap" &
+   sudo tcpdump -U -i "$veth" port 1885 -w "./results/sn-dtls/run-$x-loss-$loss-delay-$delay-n-$number_of_packets-s-$size_of_packets-i-$msg_interval.pcap" &
    sleep 5
 
    for i in $(seq 1 "$number_of_packets"); do
       msg=$(head -c "$size_of_packets" < /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c "$size_of_packets")
-      echo "docker run --rm --network=mqtt-sn-tools_emqx-bridge mqtt-sn-client:0.1 ./mqtt-sn-pub -h broker.emqx.io -p 8883 --dtls -i mqtt-sn-tools-$$ -t test/topic -m $msg -q $qos -k $keepalive"
+      echo "docker run --rm --network=mqtt-sn-tools_emqx-bridge mqtt-sn-client:0.1 ./mqtt-sn-pub -h broker.emqx.io -p 1885 --dtls -i mqtt-sn-tools-$$ -t topic -m $msg -q $qos -k $keepalive"
       docker run --rm --network=mqtt-sn-tools_emqx-bridge mqtt-sn-client:0.1 ./mqtt-sn-pub  \
             -h broker.emqx.io \
-            -p 8883 \
+            -p 1885 \
             --dtls \
             -i "mqtt-sn-tools-$$" \
             -t "test/topic" \
             -m "$msg" \
             -q "$qos" \
-            -k "$keepalive"
+            -k "$keepalive \
+            --cafile ca-files/myCAX509Certificate.crt \
+            --cert ca-files/publisher/publisher.crt \
+            --key ca-files/publisher/publisher.key \
+            "
       sleep "$msg_interval"
    done
 
